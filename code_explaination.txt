@@ -1,0 +1,44 @@
+#First, we import the necessary libraries. We use pandas to read in and manipulate the Excel sheets.
+
+import pandas as pd
+
+#We then read in the two Excel sheets into pandas dataframes.
+
+sheet1 = pd.read_excel('excel_sheet1.xlsx')
+sheet2 = pd.read_excel('excel_sheet2.xlsx')
+
+#Next, we create a dictionary called id_dict that maps (project_id, employee_id) tuples to (employee_id, employee_name) tuples from sheet 1. We do this using a dictionary comprehension and the iterrows() method, which iterates over each row in the sheet 1 dataframe.
+
+id_dict = {(row['Project ID'], row['ID']): (row['ID'], row['Name']) for _, row in sheet1.iterrows()}
+
+#We get a list of unique project IDs from both sheets by taking the union of the Project ID columns in each sheet, sorting them, and converting them to a list.
+
+project_ids = sorted(set(sheet1['Project ID']).union(set(sheet2['Project ID'])))
+
+#Next, we assign new project IDs to projects in sheet 2 while keeping the same employee IDs for projects in sheet 1. We first create a list of unique employee IDs by taking the length of the unique values in the ID column of sheet 1 and generating a range of integers starting at 1. We then iterate over each project ID and check if it is in the id_dict dictionary. If it is, we use the same employee ID and name as in sheet 1. If not, we assign a new project ID to a unique employee in sheet 1. If the project ID is already in sheet 1, we use the corresponding employee ID and name from sheet 1. Otherwise, we pop an ID from the unique_ids list and assign it to the project. We then add the (project_id, employee_id, employee_name) tuple to the id_dict dictionary.
+
+unique_ids = list(range(1, len(sheet1['ID'].unique()) + 1))
+for project_id in project_ids:
+    if project_id in id_dict:
+        # Use the same employee ID and name as in sheet 1
+        employee_id, employee_name = id_dict[project_id]
+    else:
+        # Assign a new project ID to a unique employee in sheet 1
+        employee_id, employee_name = None, None
+        if project_id in sheet1['Project ID'].unique():
+            employee_id = sheet1.loc[sheet1['Project ID'] == project_id, 'ID'].values[0]
+            employee_name = sheet1.loc[sheet1['Project ID'] == project_id, 'Name'].values[0]
+        elif unique_ids:
+            employee_id, employee_name = unique_ids.pop(0), ''
+        id_dict[project_id] = (employee_id, employee_name)
+
+#Finally, we update the ID and Name columns in sheet 2 by using the loc method to select the rows where the Project ID column matches the current project ID, and assigning the employee_id and employee_name variables to the corresponding cells.
+
+sheet2.loc[sheet2['Project ID'] == project_id, 'ID'] = employee_id
+sheet2.loc[sheet2['Project ID'] == project_id, 'Name'] = employee_name
+
+#We print the updated sheet 2 to the console.
+
+print(sheet2)
+
+
